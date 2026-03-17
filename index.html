@@ -1,0 +1,469 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>ICT Online Exam System</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:#eef2f7;
+padding:20px;
+}
+
+.box{
+background:white;
+padding:20px;
+border-radius:10px;
+max-width:800px;
+margin:auto;
+box-shadow:0 0 10px gray;
+display:none;
+}
+
+#login{
+background:white;
+padding:20px;
+max-width:400px;
+margin:auto;
+border-radius:10px;
+box-shadow:0 0 10px gray;
+}
+
+button{
+padding:10px;
+margin-top:10px;
+border:none;
+border-radius:5px;
+cursor:pointer;
+}
+
+.option{
+display:block;
+width:100%;
+background:#e9ecef;
+margin:5px 0;
+}
+
+.correct{
+background:#28a745;
+color:white;
+}
+
+.wrong{
+background:#dc3545;
+color:white;
+}
+
+.next{
+background:#007bff;
+color:white;
+}
+
+.progress{
+width:100%;
+background:#ddd;
+border-radius:10px;
+margin-bottom:10px;
+}
+
+.progress-bar{
+height:10px;
+background:#28a745;
+width:0%;
+border-radius:10px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:20px;
+}
+
+table,th,td{
+border:1px solid gray;
+padding:8px;
+text-align:center;
+}
+
+#timer{
+color:red;
+font-weight:bold;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h2 style="text-align:center">
+វិទ្យាល័យសម្ដេចជួនណាត<br>
+តេស្ដប្រឡងប្រចាំខែ មុខវិជ្ជា៖ ICT
+</h2>
+
+<div id="login">
+
+<h2>ICT Online Exam</h2>
+
+<input id="name" placeholder="Student Name" style="width:100%;padding:8px"><br><br>
+
+<select id="gender" style="width:100%;padding:8px">
+<option value="">Gender</option>
+<option>Male</option>
+<option>Female</option>
+</select><br><br>
+
+<input id="class" placeholder="Class (11A)" style="width:100%;padding:8px"><br><br>
+<!-- Camera Section -->
+<div style="text-align:center">
+    <video id="video" width="200" height="260" autoplay style="border:1px solid gray"></video><br><br>
+
+    <button onclick="startCamera()">Open Camera</button>
+    <button onclick="takePhoto()">Take Photo</button><br><br>
+
+    <canvas id="canvas" width="200" height="260" style="display:none;"></canvas>
+
+    <img id="photoPreview" width="120" height="160" style="border:1px solid black">
+</div>
+<br>
+<button onclick="startExam()">Start Exam</button>
+<button onclick="showResults()">Teacher Result</button>
+
+</div>
+
+<div class="box" id="exam">
+
+<h2>ICT Exam</h2>
+
+<div class="progress">
+<div class="progress-bar" id="progressBar"></div>
+</div>
+
+<p id="timer"></p>
+<p id="question"></p>
+
+<div id="options"></div>
+
+<button class="next" id="nextBtn" onclick="nextQuestion()" disabled>Next</button>
+
+<p id="result"></p>
+
+</div>
+
+<div class="box" id="teacher">
+
+<h2>Student Results</h2>
+
+<table>
+
+<thead>
+<tr>
+<th>Name</th>
+<th>Gender</th>
+<th>Class</th>
+<th>Score</th>
+<th>Grade</th>
+<th>Photo</th>
+</tr>
+</thead>
+
+<tbody id="resultTable"></tbody>
+
+</table>
+
+<br>
+<button onclick="clearResults()">Clear Results</button>
+
+</div>
+
+<script>
+
+document.addEventListener("contextmenu",e=>e.preventDefault());
+
+let answered=false;
+let photoData = "";
+
+function startCamera(){
+    navigator.mediaDevices.getUserMedia({ video:true })
+    .then(stream=>{
+        document.getElementById("video").srcObject = stream;
+    })
+    .catch(err=>{
+        alert("Camera not allowed!");
+    });
+}
+
+function takePhoto(){
+    let video = document.getElementById("video");
+    let canvas = document.getElementById("canvas");
+    let ctx = canvas.getContext("2d");
+
+    ctx.drawImage(video,0,0,200,260);
+
+    photoData = canvas.toDataURL("image/png");
+
+    document.getElementById("photoPreview").src = photoData;
+}
+let questions=[
+
+{q:"CPU stands for?",options:["Central Processing Unit","Computer Program Unit","Central Power Unit","Computer Processing Unit"],answer:0},
+{q:"RAM is?",options:["Temporary memory","Permanent memory","Internet","Storage disk"],answer:0},
+{q:"Which is input device?",options:["Keyboard","Monitor","Printer","Speaker"],answer:0},
+{q:"Which is output device?",options:["Monitor","Mouse","Keyboard","Scanner"],answer:0},
+{q:"ICT stands for?",options:["Information Communication Technology","Internet Computer Tool","Internal Computer Technology","Information Control Tool"],answer:0},
+{q:"Which is storage device?",options:["Hard Disk","Mouse","Speaker","Keyboard"],answer:0},
+{q:"OS stands for?",options:["Operating System","Open System","Online System","Office System"],answer:0},
+{q:"Which is browser?",options:["Chrome","Windows","Excel","PowerPoint"],answer:0},
+{q:"Windows made by?",options:["Microsoft","Google","Apple","Samsung"],answer:0},
+{q:"Delete key does?",options:["Remove text","Copy text","Paste text","Save file"],answer:0}
+
+];
+
+while(questions.length<100){
+questions.push(questions[Math.floor(Math.random()*10)]);
+}
+
+questions.sort(()=>Math.random()-0.5);
+
+let examQuestions=questions.slice(0,50);
+
+let current=0;
+let score=0;
+let timeLeft=40;
+let timer;
+
+function shuffle(q){
+
+let arr=q.options.map((opt,i)=>({text:opt,correct:i===q.answer}));
+
+arr.sort(()=>Math.random()-0.5);
+
+q.options=arr.map(a=>a.text);
+
+q.answer=arr.findIndex(a=>a.correct);
+
+}
+
+function startExam(){
+if(photoData==""){
+    alert("Please take photo!");
+    return;
+}
+let name=document.getElementById("name").value;
+let gender=document.getElementById("gender").value;
+let cls=document.getElementById("class").value;
+
+if(name==""||gender==""||cls==""){
+alert("Please complete information");
+return;
+}
+
+document.getElementById("login").style.display="none";
+document.getElementById("exam").style.display="block";
+
+loadQuestion();
+}
+
+function loadQuestion(){
+
+answered=false;
+
+clearInterval(timer);
+
+timeLeft=40;
+
+document.getElementById("nextBtn").disabled=true;
+
+let q=examQuestions[current];
+
+shuffle(q);
+
+document.getElementById("question").innerHTML=(current+1)+" / "+examQuestions.length+" : "+q.q;
+
+let html="";
+
+q.options.forEach((opt,i)=>{
+html+='<button class="option" onclick="selectAnswer('+i+')">'+opt+'</button>';
+});
+
+document.getElementById("options").innerHTML=html;
+
+updateProgress();
+
+startTimer();
+}
+
+function selectAnswer(i){
+
+if(answered) return;
+
+answered=true;
+
+clearInterval(timer);
+
+let buttons=document.querySelectorAll(".option");
+
+buttons.forEach(btn=>btn.disabled=true);
+
+if(i==examQuestions[current].answer){
+
+buttons[i].classList.add("correct");
+score++;
+
+}else{
+
+buttons[i].classList.add("wrong");
+buttons[examQuestions[current].answer].classList.add("correct");
+
+}
+
+document.getElementById("nextBtn").disabled=false;
+}
+
+function nextQuestion(){
+
+current++;
+
+if(current>=examQuestions.length){
+finishExam();
+return;
+}
+
+loadQuestion();
+}
+
+function startTimer(){
+
+timer=setInterval(function(){
+
+document.getElementById("timer").innerHTML="Time Left: "+timeLeft+" s";
+
+timeLeft--;
+
+if(timeLeft<0){
+clearInterval(timer);
+nextQuestion();
+}
+
+},1000);
+
+}
+
+function updateProgress(){
+
+let percent=((current+1)/examQuestions.length)*100;
+
+document.getElementById("progressBar").style.width=percent+"%";
+}
+
+function finishExam(){
+
+clearInterval(timer);
+
+let percent=(score/examQuestions.length)*100;
+
+let grade="D";
+
+if(percent>=90) grade="A";
+else if(percent>=70) grade="B";
+else if(percent>=50) grade="C";
+
+document.getElementById("question").innerHTML="Exam Finished";
+document.getElementById("options").innerHTML="";
+document.getElementById("timer").innerHTML="";
+document.getElementById("nextBtn").style.display="none";
+
+document.getElementById("result").innerHTML=
+"<h3>Score: "+score+" / "+examQuestions.length+"</h3>"+
+"<h3>Grade: "+grade+"</h3>"+
+"<button onclick='downloadPDF()'>Download Result PDF</button>"+
+"<br><br><button onclick='location.reload()'>Back To Login</button>";
+
+saveResult(grade);
+
+}
+
+function saveResult(grade){
+
+let name=document.getElementById("name").value;
+let gender=document.getElementById("gender").value;
+let cls=document.getElementById("class").value;
+
+let results=JSON.parse(localStorage.getItem("examResults")||"[]");
+
+results.push({name,gender,cls,score,grade,photo:photoData});
+
+localStorage.setItem("examResults",JSON.stringify(results));
+}
+
+function showResults(){
+
+document.getElementById("login").style.display="none";
+document.getElementById("teacher").style.display="block";
+
+let results=JSON.parse(localStorage.getItem("examResults")||"[]");
+
+let html="";
+
+results.forEach(r=>{
+
+html+='<tr>'+
+'<td>'+r.name+'</td>'+
+'<td>'+r.gender+'</td>'+
+'<td>'+r.cls+'</td>'+
+'<td>'+r.score+'</td>'+
+'<td>'+r.grade+'</td>'+
+'<td><img src="'+r.photo+'" width="50"></td>'+
+'</tr>';
+
+});
+
+document.getElementById("resultTable").innerHTML=html;
+}
+
+function clearResults(){
+
+if(confirm("Delete all results?")){
+localStorage.removeItem("examResults");
+location.reload();
+}
+}
+
+function downloadPDF(){
+
+const { jsPDF } = window.jspdf;
+
+let name=document.getElementById("name").value;
+let gender=document.getElementById("gender").value;
+let cls=document.getElementById("class").value;
+
+let percent=(score/examQuestions.length)*100;
+
+const doc=new jsPDF();
+
+doc.text("ICT Exam Result",20,20);
+doc.text("Name: "+name,20,40);
+doc.text("Gender: "+gender,20,50);
+doc.text("Class: "+cls,20,60);
+doc.text("Score: "+score+" / "+examQuestions.length,20,80);
+doc.text("Percentage: "+percent.toFixed(2)+" %",20,90);
+if(photoData!=""){
+doc.addImage(photoData,'PNG',150,30,40,50);
+
+}
+doc.save(name+"_ICT_Result.pdf");
+
+}
+
+</script>
+
+</body>
+</html>
