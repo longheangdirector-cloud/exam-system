@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 
 <head>
@@ -122,19 +122,25 @@ font-weight:bold;
 </select><br><br>
 
 <input id="class" placeholder="Class (11A)" style="width:100%;padding:8px"><br><br>
-<!-- Camera Section -->
+
 <div style="text-align:center">
-    <video id="video" width="200" height="260" autoplay style="border:1px solid gray"></video><br><br>
 
-    <button onclick="startCamera()">Open Camera</button>
-    <button onclick="takePhoto()">Take Photo</button><br><br>
+<video id="video" width="200" height="260" autoplay style="border:1px solid gray"></video><br><br>
 
-    <canvas id="canvas" width="200" height="260" style="display:none;"></canvas>
+<button onclick="startCamera()">Open Camera</button>
 
-    <img id="photoPreview" width="120" height="160" style="border:1px solid black">
+<button onclick="takePhoto()">Take Photo</button><br><br>
+
+<canvas id="canvas" width="200" height="260" style="display:none;"></canvas>
+
+<img id="photoPreview" width="120" height="160" style="border:1px solid black">
+
 </div>
+
 <br>
+
 <button onclick="startExam()">Start Exam</button>
+
 <button onclick="showResults()">Teacher Result</button>
 
 </div>
@@ -148,6 +154,7 @@ font-weight:bold;
 </div>
 
 <p id="timer"></p>
+
 <p id="question"></p>
 
 <div id="options"></div>
@@ -165,6 +172,7 @@ font-weight:bold;
 <table>
 
 <thead>
+
 <tr>
 <th>Name</th>
 <th>Gender</th>
@@ -173,6 +181,7 @@ font-weight:bold;
 <th>Grade</th>
 <th>Photo</th>
 </tr>
+
 </thead>
 
 <tbody id="resultTable"></tbody>
@@ -180,6 +189,7 @@ font-weight:bold;
 </table>
 
 <br>
+
 <button onclick="clearResults()">Clear Results</button>
 
 </div>
@@ -188,47 +198,85 @@ font-weight:bold;
 
 document.addEventListener("contextmenu",e=>e.preventDefault());
 
+window.onbeforeunload=function(){
+return "Exam is running!";
+}
+
 let answered=false;
-let photoData = "";
+
+let photoData="";
 
 function startCamera(){
-    navigator.mediaDevices.getUserMedia({ video:true })
-    .then(stream=>{
-        document.getElementById("video").srcObject = stream;
-    })
-    .catch(err=>{
-        alert("Camera not allowed!");
-    });
+
+navigator.mediaDevices.getUserMedia({ video:true })
+
+.then(stream=>{
+
+document.getElementById("video").srcObject=stream;
+
+})
+
+.catch(err=>{
+
+alert("Camera not allowed!");
+
+});
+
 }
 
 function takePhoto(){
-    let video = document.getElementById("video");
-    let canvas = document.getElementById("canvas");
-    let ctx = canvas.getContext("2d");
 
-    ctx.drawImage(video,0,0,200,260);
+let video=document.getElementById("video");
 
-    photoData = canvas.toDataURL("image/png");
+let canvas=document.getElementById("canvas");
 
-    document.getElementById("photoPreview").src = photoData;
+let ctx=canvas.getContext("2d");
+
+ctx.drawImage(video,0,0,200,260);
+
+photoData=canvas.toDataURL("image/png");
+
+document.getElementById("photoPreview").src=photoData;
+
+// Stop Camera
+let stream=video.srcObject;
+
+let tracks=stream.getTracks();
+
+tracks.forEach(track=>track.stop());
+
+video.srcObject=null;
+
 }
+
 let questions=[
 
 {q:"CPU stands for?",options:["Central Processing Unit","Computer Program Unit","Central Power Unit","Computer Processing Unit"],answer:0},
+
 {q:"RAM is?",options:["Temporary memory","Permanent memory","Internet","Storage disk"],answer:0},
+
 {q:"Which is input device?",options:["Keyboard","Monitor","Printer","Speaker"],answer:0},
+
 {q:"Which is output device?",options:["Monitor","Mouse","Keyboard","Scanner"],answer:0},
+
 {q:"ICT stands for?",options:["Information Communication Technology","Internet Computer Tool","Internal Computer Technology","Information Control Tool"],answer:0},
+
 {q:"Which is storage device?",options:["Hard Disk","Mouse","Speaker","Keyboard"],answer:0},
+
 {q:"OS stands for?",options:["Operating System","Open System","Online System","Office System"],answer:0},
+
 {q:"Which is browser?",options:["Chrome","Windows","Excel","PowerPoint"],answer:0},
+
 {q:"Windows made by?",options:["Microsoft","Google","Apple","Samsung"],answer:0},
+
 {q:"Delete key does?",options:["Remove text","Copy text","Paste text","Save file"],answer:0}
 
 ];
 
 while(questions.length<100){
+
 questions.push(questions[Math.floor(Math.random()*10)]);
+
 }
 
 questions.sort(()=>Math.random()-0.5);
@@ -236,8 +284,11 @@ questions.sort(()=>Math.random()-0.5);
 let examQuestions=questions.slice(0,50);
 
 let current=0;
+
 let score=0;
+
 let timeLeft=40;
+
 let timer;
 
 function shuffle(q){
@@ -253,23 +304,37 @@ q.answer=arr.findIndex(a=>a.correct);
 }
 
 function startExam(){
+
+document.documentElement.requestFullscreen();
+
 if(photoData==""){
-    alert("Please take photo!");
-    return;
+
+alert("Please take photo!");
+
+return;
+
 }
+
 let name=document.getElementById("name").value;
+
 let gender=document.getElementById("gender").value;
+
 let cls=document.getElementById("class").value;
 
 if(name==""||gender==""||cls==""){
+
 alert("Please complete information");
+
 return;
+
 }
 
 document.getElementById("login").style.display="none";
+
 document.getElementById("exam").style.display="block";
 
 loadQuestion();
+
 }
 
 function loadQuestion(){
@@ -286,12 +351,15 @@ let q=examQuestions[current];
 
 shuffle(q);
 
-document.getElementById("question").innerHTML=(current+1)+" / "+examQuestions.length+" : "+q.q;
+document.getElementById("question").innerHTML=
+(current+1)+" / "+examQuestions.length+" : "+q.q;
 
 let html="";
 
 q.options.forEach((opt,i)=>{
+
 html+='<button class="option" onclick="selectAnswer('+i+')">'+opt+'</button>';
+
 });
 
 document.getElementById("options").innerHTML=html;
@@ -299,6 +367,7 @@ document.getElementById("options").innerHTML=html;
 updateProgress();
 
 startTimer();
+
 }
 
 function selectAnswer(i){
@@ -316,16 +385,19 @@ buttons.forEach(btn=>btn.disabled=true);
 if(i==examQuestions[current].answer){
 
 buttons[i].classList.add("correct");
+
 score++;
 
 }else{
 
 buttons[i].classList.add("wrong");
+
 buttons[examQuestions[current].answer].classList.add("correct");
 
 }
 
 document.getElementById("nextBtn").disabled=false;
+
 }
 
 function nextQuestion(){
@@ -333,24 +405,41 @@ function nextQuestion(){
 current++;
 
 if(current>=examQuestions.length){
+
 finishExam();
+
 return;
+
 }
 
 loadQuestion();
+
 }
 
 function startTimer(){
 
 timer=setInterval(function(){
 
-document.getElementById("timer").innerHTML="Time Left: "+timeLeft+" s";
+document.getElementById("timer").innerHTML=
+"Time Left: "+timeLeft+" s";
 
 timeLeft--;
 
 if(timeLeft<0){
+
 clearInterval(timer);
-nextQuestion();
+
+answered=true;
+
+let buttons=document.querySelectorAll(".option");
+
+buttons[examQuestions[current].answer]
+.classList.add("correct");
+
+buttons.forEach(btn=>btn.disabled=true);
+
+document.getElementById("nextBtn").disabled=false;
+
 }
 
 },1000);
@@ -361,7 +450,9 @@ function updateProgress(){
 
 let percent=((current+1)/examQuestions.length)*100;
 
-document.getElementById("progressBar").style.width=percent+"%";
+document.getElementById("progressBar").style.width=
+percent+"%";
+
 }
 
 function finishExam(){
@@ -376,15 +467,23 @@ if(percent>=90) grade="A";
 else if(percent>=70) grade="B";
 else if(percent>=50) grade="C";
 
-document.getElementById("question").innerHTML="Exam Finished";
+document.getElementById("question").innerHTML=
+"Exam Finished";
+
 document.getElementById("options").innerHTML="";
+
 document.getElementById("timer").innerHTML="";
+
 document.getElementById("nextBtn").style.display="none";
 
 document.getElementById("result").innerHTML=
+
 "<h3>Score: "+score+" / "+examQuestions.length+"</h3>"+
+
 "<h3>Grade: "+grade+"</h3>"+
+
 "<button onclick='downloadPDF()'>Download Result PDF</button>"+
+
 "<br><br><button onclick='location.reload()'>Back To Login</button>";
 
 saveResult(grade);
@@ -394,47 +493,75 @@ saveResult(grade);
 function saveResult(grade){
 
 let name=document.getElementById("name").value;
+
 let gender=document.getElementById("gender").value;
+
 let cls=document.getElementById("class").value;
 
-let results=JSON.parse(localStorage.getItem("examResults")||"[]");
+let results=
+JSON.parse(localStorage.getItem("examResults")||"[]");
 
-results.push({name,gender,cls,score,grade,photo:photoData});
+results.push({
 
-localStorage.setItem("examResults",JSON.stringify(results));
+name,
+gender,
+cls,
+score,
+grade,
+photo:photoData
+
+});
+
+localStorage.setItem("examResults",
+JSON.stringify(results));
+
 }
 
 function showResults(){
 
 document.getElementById("login").style.display="none";
+
 document.getElementById("teacher").style.display="block";
 
-let results=JSON.parse(localStorage.getItem("examResults")||"[]");
+let results=
+JSON.parse(localStorage.getItem("examResults")||"[]");
 
 let html="";
 
 results.forEach(r=>{
 
 html+='<tr>'+
+
 '<td>'+r.name+'</td>'+
+
 '<td>'+r.gender+'</td>'+
+
 '<td>'+r.cls+'</td>'+
+
 '<td>'+r.score+'</td>'+
+
 '<td>'+r.grade+'</td>'+
+
 '<td><img src="'+r.photo+'" width="50"></td>'+
+
 '</tr>';
 
 });
 
 document.getElementById("resultTable").innerHTML=html;
+
 }
 
 function clearResults(){
 
 if(confirm("Delete all results?")){
+
 localStorage.removeItem("examResults");
+
 location.reload();
+
 }
+
 }
 
 function downloadPDF(){
@@ -442,23 +569,66 @@ function downloadPDF(){
 const { jsPDF } = window.jspdf;
 
 let name=document.getElementById("name").value;
+
 let gender=document.getElementById("gender").value;
+
 let cls=document.getElementById("class").value;
 
 let percent=(score/examQuestions.length)*100;
 
+let grade="D";
+
+if(percent>=90) grade="A";
+else if(percent>=70) grade="B";
+else if(percent>=50) grade="C";
+
+// Date & Time
+let now=new Date();
+
+let examDate=now.toLocaleDateString();
+
+let examTime=now.toLocaleTimeString();
+
 const doc=new jsPDF();
 
+// Title
+doc.setFontSize(18);
+
 doc.text("ICT Exam Result",20,20);
+
+// Student Info
+doc.setFontSize(12);
+
 doc.text("Name: "+name,20,40);
+
 doc.text("Gender: "+gender,20,50);
+
 doc.text("Class: "+cls,20,60);
+
 doc.text("Score: "+score+" / "+examQuestions.length,20,80);
+
 doc.text("Percentage: "+percent.toFixed(2)+" %",20,90);
+
+doc.text("Grade: "+grade,20,100);
+
+// Date & Time
+doc.text("Exam Date: "+examDate,20,120);
+
+doc.text("Exam Time: "+examTime,20,130);
+
+// Photo
 if(photoData!=""){
+
 doc.addImage(photoData,'PNG',150,30,40,50);
 
 }
+
+// Footer
+doc.setFontSize(10);
+
+doc.text("Samdech Choun Nat High School",20,280);
+
+// Save PDF
 doc.save(name+"_ICT_Result.pdf");
 
 }
